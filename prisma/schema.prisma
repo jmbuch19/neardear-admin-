@@ -1,0 +1,1863 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────
+
+enum Role {
+  RECEIVER
+  COMPANION
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  PAUSED
+  SUSPENDED
+  REMOVED
+}
+
+enum ApplicationStage {
+  EXPRESSION_OF_INTEREST
+  FULL_APPLICATION
+  UNDER_VERIFICATION
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  ORIENTATION_PENDING
+  ORIENTATION_COMPLETE
+  ADMIN_REVIEW
+  APPROVED
+  REJECTED
+  ON_HOLD
+}
+
+enum TrustLevel {
+  LEVEL_0
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+}
+
+enum ServiceMode {
+  REMOTE
+  IN_PERSON
+  BOTH
+}
+
+enum ServiceCluster {
+  PRESENCE
+  NAVIGATION
+  CONTINUITY
+  CONNECTION
+  PROFESSIONAL_ADVISORY
+}
+
+enum ExperienceLevel {
+  FIRST_TIME
+  SOME_EXPERIENCE
+  CONFIDENT
+}
+
+enum ProviderType {
+  SOLO_COMPANION
+  TEAM_OPERATOR
+  TEAM_MEMBER
+  PROFESSIONAL_ADVISOR
+}
+
+enum RequestStatus {
+  SUBMITTED
+  MATCHED
+  COMPANION_NOTIFIED
+  ACCEPTED
+  PAYMENT_PENDING
+  PAYMENT_COMPLETE
+  SESSION_SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+  NO_MATCH
+}
+
+enum SessionStatus {
+  SCHEDULED
+  CHECKED_IN
+  CHECKED_OUT
+  NOTE_SUBMITTED
+  COMPLETED
+  NO_SHOW_COMPANION
+  NO_SHOW_USER
+  DISPUTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  PARTIALLY_REFUNDED
+  RELEASED
+  REFUNDED
+  FAILED
+  DISPUTED
+}
+
+enum EarningStatus {
+  PENDING
+  RELEASED
+  PROCESSING
+  PAID
+  HELD
+  CANCELLED
+  COMPENSATED
+}
+
+enum WithdrawalStatus {
+  REQUESTED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CancellationWindow {
+  BEFORE_PAYMENT
+  HOURS_48_PLUS
+  HOURS_24_TO_48
+  HOURS_UNDER_24
+  SAME_DAY
+  POST_SESSION
+}
+
+enum CancelledBy {
+  RECEIVER
+  COMPANION
+  ADMIN
+  SYSTEM
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_VALID
+  RESOLVED_REFUND
+  RESOLVED_PARTIAL
+  ESCALATED
+  CLOSED
+}
+
+enum DisputeRaisedBy {
+  RECEIVER
+  COMPANION
+  ADMIN
+}
+
+enum CityStatus {
+  ACTIVE
+  COMING_SOON
+  INACTIVE
+}
+
+enum ConcernSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ConcernStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum AuditAction {
+  USER_REGISTERED
+  USER_LOGIN
+  USER_LOGOUT
+  PROFILE_UPDATED
+  APPLICATION_SUBMITTED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  TRUST_LEVEL_CHANGED
+  SESSION_CREATED
+  SESSION_CHECKED_IN
+  SESSION_CHECKED_OUT
+  SESSION_COMPLETED
+  SESSION_CANCELLED
+  PAYMENT_CAPTURED
+  PAYMENT_RELEASED
+  PAYMENT_REFUNDED
+  CONCERN_RAISED
+  CONCERN_RESOLVED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_RESTORED
+  ADMIN_ACTION
+  WARNING_ISSUED
+}
+
+enum RecurringFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum VerificationStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  EXPIRED
+}
+
+enum InterviewRecommendation {
+  APPROVE
+  CONDITIONAL
+  REJECT
+}
+
+enum HardSkill {
+  FOUR_WHEELER_DRIVER
+  TWO_WHEELER_DRIVER
+  COMPUTER_LITERATE
+  MEDICAL_BACKGROUND
+  LEGAL_KNOWLEDGE
+  FINANCIAL_LITERACY
+  GOVT_OFFICE_NAVIGATION
+  MULTILINGUAL
+  FIRST_AID_TRAINED
+}
+
+enum SoftSkill {
+  EMPATHETIC
+  PATIENT
+  GOOD_COMMUNICATOR
+  WARM_PRESENCE
+  EMOTIONALLY_MATURE
+  CULTURALLY_SENSITIVE
+  CALM_UNDER_PRESSURE
+  TRUSTWORTHY
+  RELIABLE
+}
+
+enum AppLanguage {
+  EN
+  GU
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  PREFER_NOT_TO_SAY
+}
+
+enum GenderPreference {
+  FEMALE
+  MALE
+  NO_PREFERENCE
+}
+
+enum SensitivityLevel {
+  HIGH    // home visits, personal presence — gender preference prominently shown
+  MEDIUM  // public place, accompany — gender preference available but not highlighted
+  LOW     // remote, errand — gender preference optional, less culturally significant
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PlanFrequency {
+  ONCE_WEEKLY
+  TWICE_WEEKLY
+  THREE_WEEKLY
+  DAILY_WEEKDAYS
+}
+
+enum PlanDuration {
+  ONE_MONTH
+  THREE_MONTHS
+  SIX_MONTHS
+}
+
+enum PlanBilling {
+  MONTHLY
+  UPFRONT
+}
+
+// ─── CORE USER ────────────────────────────────────────
+
+model User {
+  id                String        @id @default(cuid())
+  phone             String        @unique
+  email             String?       @unique
+  name              String
+  city              String
+  state             String?
+  role              Role          @default(RECEIVER)
+  accountStatus     AccountStatus @default(ACTIVE)
+  passwordHash      String?
+  isPhoneVerified   Boolean       @default(false)
+  isEmailVerified   Boolean       @default(false)
+  consentTerms      Boolean       @default(false)
+  consentAbuse      Boolean       @default(false)
+  consentData       Boolean       @default(false)
+  consentNotif      Boolean       @default(false)
+  consentAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt         DateTime?
+  preferredLanguage   AppLanguage   @default(EN)
+  deletedAt           DateTime?
+  anonymisedAt        DateTime?
+  deletionRequestedAt DateTime?
+  deletionReason      String?
+
+  // Relations
+  otpTokens         OtpToken[]
+  elderProfiles     ElderProfile[]
+  requests          Request[]
+  providerProfile   ProviderProfile?
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  concerns          Concern[]       @relation("ConcernRaisedBy")
+  feedbackGiven     Feedback[]      @relation("FeedbackByUser")
+  carePlans         CarePlan[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([role])
+  @@index([accountStatus])
+  @@index([city])
+  @@map("users")
+}
+
+// ─── OTP TOKENS ───────────────────────────────────────
+
+model OtpToken {
+  id             String    @id @default(cuid())
+  userId         String
+  token          String
+  phone          String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  failedAttempts Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("otp_tokens")
+}
+
+// ─── ELDER PROFILE ────────────────────────────────────
+
+model ElderProfile {
+  id                  String    @id @default(cuid())
+  familyUserId        String
+  name                String
+  phone               String?
+  city                String
+  state               String?
+  ageRange            String
+  primaryLanguage     String
+  secondaryLanguage   String?
+  healthNotes         String?
+  mobilityNotes       String?
+  emergencyContact    String
+  emergencyName       String
+  consentGiven        Boolean   @default(false)
+  consentAt           DateTime?
+  isActive            Boolean          @default(true)
+  genderPreference    GenderPreference @default(NO_PREFERENCE)
+
+  // Elder healthcare profile
+  mobilityLevel          String?
+  communicationLevel     String?
+  personalCareNeeds      String[]
+  medicalEquipment       String[]
+  primaryCondition       String?
+  careScheduleHours      Int?
+  careShiftType          String?
+  careFrequency          String?
+
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  deletedAt           DateTime?
+
+  familyUser          User      @relation(fields: [familyUserId], references: [id])
+  requests            Request[]
+  recurringPlans      RecurringPlan[]
+  carePlans           CarePlan[]
+
+  @@index([familyUserId])
+  @@index([city])
+  @@index([isActive])
+  @@map("elder_profiles")
+}
+
+// ─── PROVIDER PROFILE ─────────────────────────────────
+
+model ProviderProfile {
+  id                  String          @id @default(cuid())
+  userId              String          @unique
+  providerType        ProviderType
+  applicationStage    ApplicationStage @default(EXPRESSION_OF_INTEREST)
+  trustLevel          TrustLevel      @default(LEVEL_0)
+  accountStatus       AccountStatus   @default(PAUSED)
+
+  // Personal
+  legalName           String
+  dateOfBirth         DateTime?
+  gender              Gender?
+  alternatPhone       String?
+  selfieUrl           String?
+
+  // Address
+  addressLine1        String?
+  addressLine2        String?
+  city                String
+  state               String
+  pincode             String?
+  addressProofUrl     String?
+  yearsAtAddress      String?
+
+  // Government Identity
+  aadhaarLast4        String?
+  aadhaarVerified     VerificationStatus @default(PENDING)
+  aadhaarVerifiedAt   DateTime?
+  panNumber           String?
+
+  // Police Verification
+  pccUrl              String?
+  pccIssuingAuth      String?
+  pccIssuedAt         DateTime?
+  pccVerifiedAt       DateTime?
+  pccStatus           VerificationStatus @default(PENDING)
+  pccExpiresAt        DateTime?
+
+  // Motivation
+  whyThisWork         String?
+
+  // Geography
+  serviceRadiusKm     Int             @default(10)
+  serviceAreas        String[]
+  willingToTravel     Boolean         @default(false)
+
+  // Vehicle
+  vehicleType         String?
+  hasVehicle          Boolean         @default(false)
+
+  // Skills
+  hardSkills          HardSkill[]
+  softSkills          SoftSkill[]
+
+  // Languages
+  languages           String[]
+
+  // Mobility
+  canAccompanyHospital    Boolean     @default(false)
+  canDriveElderly         Boolean     @default(false)
+  comfortableBedridden    Boolean     @default(false)
+
+  // Healthcare
+  hasHealthcareTraining      Boolean  @default(false)
+  healthcareQualifications   String[]
+  clinicalTasksOffered       String[]
+  physicalCareCapable        Boolean  @default(false)
+  comfortableWithFluids      Boolean  @default(false)
+  canDoNightShift            Boolean  @default(false)
+  availableForLiveIn         Boolean  @default(false)
+  preferredShifts            String[]
+  healthcareExperienceNote   String?
+
+  // Availability
+  availableDays       String[]
+  availableSlots      String[]
+  weeklyHours         String?
+  noticePeriod        String?
+  availableNow        Boolean   @default(false)
+  availableNowSince   DateTime?
+
+  // For Professional Advisors
+  primaryExpertise    String?
+  subSpecialisation   String?
+  yearsExperience     Int?
+  currentEmployer     String?
+  feePerSession       Int?
+  sessionDuration     Int?
+  onlineOnly          Boolean         @default(true)
+  officeAddress       String?
+  googleMapsLink      String?
+
+  // Team
+  teamOperatorId      String?
+  teamSize            Int?
+
+  // Stats (calculated)
+  totalSessions       Int             @default(0)
+  avgFeedbackScore    Float?
+  acceptanceRate      Float?
+
+  // Occupation
+  currentStatus          String?
+  occupationCurrent      String?
+  occupationPast         String?
+  studyField             String?
+  ageRange               String?
+
+  // Reliability metrics
+  advanceCancellations   Int   @default(0)
+  shortNoticeCancels     Int   @default(0)
+  noShowCount            Int   @default(0)
+  selfArrangedCovers     Int   @default(0)
+  reliabilityScore       Float @default(100.0)
+
+  // Timestamps
+  activatedAt         DateTime?
+  lastActiveAt        DateTime?
+  reVerificationDue   DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  preferredLanguage   AppLanguage     @default(EN)
+  deletedAt           DateTime?
+  anonymisedAt        DateTime?
+
+  // Relations
+  user                User            @relation(fields: [userId], references: [id])
+  teamOperator        TeamOperator?   @relation("TeamMembers", fields: [teamOperatorId], references: [id])
+  operatorAccount     TeamOperator?   @relation("OperatorProfile")
+  references          CharacterReference[]
+  serviceOfferings    ServiceOffering[]
+  verificationRecord  VerificationRecord?
+  interviewRecord     InterviewRecord?
+  orientationRecord   OrientationRecord?
+  trustLevelHistory   TrustLevelHistory[]
+  sessions            Session[]       @relation("CompanionSessions")
+  earnings            Earning[]
+  withdrawals         Withdrawal[]
+  bankAccount         BankAccount?
+  adminNotes          AdminNote[]
+  warnings            Warning[]
+  suspensions         Suspension[]
+  concerns            Concern[]       @relation("ConcernAboutProvider")
+  credentials         ProviderCredential[]
+  annualReviews       AnnualReview[]
+  statusChanges       ProviderStatusChange[]
+  rateConfigs         CompanionRateConfig[]
+  bonusCredits        BonusCredit[]
+  performanceWarnings PerformanceWarning[]
+  carePlans           CarePlan[]
+
+  @@index([userId])
+  @@index([city])
+  @@index([trustLevel])
+  @@index([accountStatus])
+  @@index([applicationStage])
+  @@index([providerType])
+  @@map("provider_profiles")
+}
+
+// ─── TEAM OPERATOR ────────────────────────────────────
+
+model TeamOperator {
+  id                String    @id @default(cuid())
+  providerProfileId String    @unique
+  orgName           String?
+  isRegistered      Boolean   @default(false)
+  registrationNo    String?
+  registrationDoc   String?
+  teamSize          Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  operatorProfile   ProviderProfile  @relation("OperatorProfile", fields: [providerProfileId], references: [id])
+  teamMembers       ProviderProfile[] @relation("TeamMembers")
+
+  @@map("team_operators")
+}
+
+// ─── CHARACTER REFERENCES ─────────────────────────────
+
+model CharacterReference {
+  id                String    @id @default(cuid())
+  providerProfileId String
+  name              String
+  phone             String
+  relationship      String
+  yearsKnown        String
+  callStatus        String    @default("PENDING")
+  callNotes         String?
+  calledAt          DateTime?
+  calledBy          String?
+  createdAt         DateTime  @default(now())
+
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("character_references")
+}
+
+// ─── VERIFICATION RECORD ──────────────────────────────
+
+model VerificationRecord {
+  id                  String    @id @default(cuid())
+  providerProfileId   String    @unique
+  aadhaarStatus       VerificationStatus @default(PENDING)
+  aadhaarCheckedAt    DateTime?
+  aadhaarCheckedBy    String?
+  pccStatus           VerificationStatus @default(PENDING)
+  pccCheckedAt        DateTime?
+  pccCheckedBy        String?
+  ref1Status          String    @default("PENDING")
+  ref1CalledAt        DateTime?
+  ref2Status          String    @default("PENDING")
+  ref2CalledAt        DateTime?
+  overallStatus       VerificationStatus @default(PENDING)
+  adminNotes          String?
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@map("verification_records")
+}
+
+// ─── INTERVIEW RECORD ─────────────────────────────────
+
+model InterviewRecord {
+  id                  String    @id @default(cuid())
+  providerProfileId   String    @unique
+  scheduledAt         DateTime?
+  conductedAt         DateTime?
+  interviewerId       String?
+  meetLink            String?
+  empathyScore        Int?
+  communicationScore  Int?
+  boundaryScore       Int?
+  scenarioScore       Int?
+  totalScore          Int?
+  recommendation      InterviewRecommendation?
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@map("interview_records")
+}
+
+// ─── ORIENTATION RECORD ───────────────────────────────
+
+model OrientationRecord {
+  id                    String    @id @default(cuid())
+  providerProfileId     String    @unique
+  module1Complete       Boolean   @default(false)
+  module2Complete       Boolean   @default(false)
+  module3Complete       Boolean   @default(false)
+  module4Complete       Boolean   @default(false)
+  module5Complete       Boolean   @default(false)
+  module6Complete       Boolean   @default(false)
+  quizScore             Int?
+  quizPassedAt          DateTime?
+  codeSignedAt          DateTime?
+  completedAt           DateTime?
+  renewalDue            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  providerProfile       ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@map("orientation_records")
+}
+
+// ─── TRUST LEVEL HISTORY ──────────────────────────────
+
+model TrustLevelHistory {
+  id                String      @id @default(cuid())
+  providerProfileId String
+  fromLevel         TrustLevel?
+  toLevel           TrustLevel
+  reason            String
+  changedBy         String
+  createdAt         DateTime    @default(now())
+
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("trust_level_history")
+}
+
+// ─── PROVIDER CREDENTIALS ─────────────────────────────
+
+model ProviderCredential {
+  id                String    @id @default(cuid())
+  providerProfileId String
+  credentialType    String
+  issuingBody       String?
+  year              String?
+  documentUrl       String
+  verifiedAt        DateTime?
+  verifiedBy        String?
+  createdAt         DateTime  @default(now())
+
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("provider_credentials")
+}
+
+// ─── ANNUAL REVIEW ────────────────────────────────────
+
+model AnnualReview {
+  id                String    @id @default(cuid())
+  providerProfileId String
+  reviewedAt        DateTime
+  reviewedBy        String
+  newPccUrl         String?
+  interviewNotes    String?
+  outcome           String
+  nextDue           DateTime
+  createdAt         DateTime  @default(now())
+
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("annual_reviews")
+}
+
+// ─── SERVICE CATEGORIES ───────────────────────────────
+
+model ServiceCategory {
+  id                    String          @id @default(cuid())
+  name                  String          @unique
+  slug                  String          @unique
+  cluster               ServiceCluster
+  mode                  ServiceMode
+  descriptionProvider   String
+  descriptionReceiver   String
+  minTrustLevel         TrustLevel      @default(LEVEL_0)
+  suggestedFeeMin       Int
+  suggestedFeeMax       Int
+  requiresVehicle       Boolean         @default(false)
+  hardSkillTags         HardSkill[]
+  softSkillTags         SoftSkill[]
+  isActive              Boolean         @default(true)
+  sensitivityLevel      SensitivityLevel @default(LOW)
+  sortOrder             Int             @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  serviceOfferings      ServiceOffering[]
+  requestServices       RequestService[]
+
+  @@index([cluster])
+  @@index([isActive])
+  @@index([minTrustLevel])
+  @@map("service_categories")
+}
+
+// ─── SERVICE OFFERINGS (Provider ↔ Service) ───────────
+
+model ServiceOffering {
+  id                  String          @id @default(cuid())
+  providerProfileId   String
+  serviceCategoryId   String
+  experienceLevel     ExperienceLevel @default(FIRST_TIME)
+  personalStatement   String?
+  isActive            Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  providerProfile     ProviderProfile  @relation(fields: [providerProfileId], references: [id])
+  serviceCategory     ServiceCategory  @relation(fields: [serviceCategoryId], references: [id])
+
+  @@unique([providerProfileId, serviceCategoryId])
+  @@index([providerProfileId])
+  @@index([serviceCategoryId])
+  @@map("service_offerings")
+}
+
+// ─── REQUESTS ─────────────────────────────────────────
+
+model Request {
+  id                String        @id @default(cuid())
+  userId            String
+  elderProfileId    String?
+  status            RequestStatus @default(SUBMITTED)
+
+  // What they need
+  descriptionRaw    String
+  aiExtractedData   Json?
+
+  // Location
+  serviceCity       String
+  serviceArea       String?
+
+  // Timing
+  preferredDate     DateTime?
+  preferredTimeSlot String?
+  isRecurring       Boolean       @default(false)
+  recurringFreq     RecurringFrequency?
+  genderPreference  GenderPreference    @default(NO_PREFERENCE)
+  isUrgent          Boolean             @default(false)
+  urgentFeeApplied  Boolean             @default(false)
+  urgentFeePercent  Int?
+
+  // Notes
+  specialNotes      String?
+
+  // Timestamps
+  acceptedAt        DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  cancelReason      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  user              User          @relation(fields: [userId], references: [id])
+  elderProfile      ElderProfile? @relation(fields: [elderProfileId], references: [id])
+  requestServices       RequestService[]
+  matches               Match[]
+  session               Session?
+  payment               Payment?
+  requestNotifications  RequestNotification[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([serviceCity])
+  @@index([createdAt])
+  @@map("requests")
+}
+
+// ─── REQUEST SERVICES (Request ↔ Service) ─────────────
+
+model RequestService {
+  id                  String          @id @default(cuid())
+  requestId           String
+  serviceCategoryId   String
+  isPrimary           Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+
+  request             Request         @relation(fields: [requestId], references: [id])
+  serviceCategory     ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
+
+  @@unique([requestId, serviceCategoryId])
+  @@index([requestId])
+  @@index([serviceCategoryId])
+  @@map("request_services")
+}
+
+// ─── MATCHES ──────────────────────────────────────────
+
+model Match {
+  id                  String    @id @default(cuid())
+  requestId           String
+  providerProfileId   String
+  rank                Int
+  matchScore          Float?
+  matchReason         Json?
+  cardCopy            String?
+  status              String    @default("SHOWN")
+  createdAt           DateTime  @default(now())
+
+  request             Request   @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+  @@index([providerProfileId])
+  @@map("matches")
+}
+
+// ─── SESSIONS ─────────────────────────────────────────
+
+model Session {
+  id                  String        @id @default(cuid())
+  requestId           String        @unique
+  companionId         String
+  status              SessionStatus @default(SCHEDULED)
+
+  scheduledDate       DateTime
+  scheduledTime       String
+  durationMinutes     Int?
+  serviceCity         String
+  serviceAddress      String?
+  isRemote            Boolean       @default(false)
+
+  checkedInAt         DateTime?
+  checkedInLat        Float?
+  checkedInLng        Float?
+  checkedOutAt        DateTime?
+  checkedOutLat       Float?
+  checkedOutLng       Float?
+
+  completedAt         DateTime?
+  confirmedByUser     Boolean       @default(false)
+  confirmedAt         DateTime?
+  autoConfirmedAt     DateTime?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  request             Request       @relation(fields: [requestId], references: [id])
+  companion           ProviderProfile @relation("CompanionSessions", fields: [companionId], references: [id])
+  sessionNote         SessionNote?
+  feedback            Feedback?
+  payment             Payment?      @relation("SessionPayment")
+  earning             Earning?
+  concerns            Concern[]     @relation("SessionConcerns")
+
+  @@index([companionId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([serviceCity])
+  @@map("sessions")
+}
+
+// ─── SESSION NOTES ────────────────────────────────────
+
+model SessionNote {
+  id                  String    @id @default(cuid())
+  sessionId           String    @unique
+  whatDoneToday       String
+  personWellbeing     String?
+  familyObservation   String?
+  hasConcern          Boolean   @default(false)
+  concernDetail       String?
+  nextVisitNeeded     Boolean   @default(false)
+  nextVisitDate       DateTime?
+  submittedAt         DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+
+  session             Session   @relation(fields: [sessionId], references: [id])
+
+  @@map("session_notes")
+}
+
+// ─── FEEDBACK ─────────────────────────────────────────
+
+model Feedback {
+  id                  String    @id @default(cuid())
+  sessionId           String    @unique
+  userId              String
+  arrivedOnTime       Boolean?
+  followedScope       Boolean?
+  wellbeingScore      Int?
+  wouldRequestAgain   String?
+  overallScore        Int?
+  concernText         String?
+  hasConcern          Boolean   @default(false)
+  submittedAt         DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+
+  session             Session   @relation(fields: [sessionId], references: [id])
+  user                User      @relation("FeedbackByUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("feedback")
+}
+
+// ─── PAYMENTS ─────────────────────────────────────────
+
+model Payment {
+  id                      String        @id @default(cuid())
+  requestId               String        @unique
+  sessionId               String?       @unique
+  userId                  String
+  razorpayOrderId         String?       @unique
+  razorpayPaymentId       String?       @unique
+  razorpaySignature       String?
+
+  // Amounts (stored in INR rupees — not paise)
+  amount                  Int
+  platformFee             Int
+  companionShare          Int
+  currency                String        @default("INR")
+
+  status                  PaymentStatus @default(PENDING)
+
+  // Full refund tracking
+  refundAmount            Int?
+  refundReason            String?
+  razorpayRefundId        String?
+  refundedAt              DateTime?
+
+  // Partial refund tracking
+  partialRefundAmount     Int?
+  partialRefundReason     String?
+  partialRazorpayRefundId String?
+  partialRefundedAt       DateTime?
+
+  capturedAt              DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  request                 Request       @relation(fields: [requestId], references: [id])
+  session                 Session?      @relation("SessionPayment", fields: [sessionId], references: [id])
+  earning                 Earning?
+  cancellationRecord      CancellationRecord?
+  dispute                 Dispute?
+
+  @@index([userId])
+  @@index([status])
+  @@index([razorpayOrderId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+// ─── EARNINGS ─────────────────────────────────────────
+
+model Earning {
+  id                  String        @id @default(cuid())
+  providerProfileId   String
+  sessionId           String        @unique
+  paymentId           String        @unique
+
+  amount              Int
+  earningType         String        @default("SESSION")
+  // SESSION / CANCELLATION_COMP / ADJUSTMENT
+
+  status              EarningStatus @default(PENDING)
+
+  releasedAt          DateTime?
+  processingAt        DateTime?
+  paidAt              DateTime?
+
+  heldAt              DateTime?
+  heldReason          String?
+  heldBy              String?
+
+  transactionRef      String?
+  withdrawalId        String?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+  session             Session         @relation(fields: [sessionId], references: [id])
+  payment             Payment         @relation(fields: [paymentId], references: [id])
+
+  @@index([providerProfileId])
+  @@index([status])
+  @@index([releasedAt])
+  @@map("earnings")
+}
+
+// ─── WITHDRAWALS ──────────────────────────────────────
+
+model Withdrawal {
+  id                  String            @id @default(cuid())
+  providerProfileId   String
+  bankAccountId       String
+
+  amount              Int
+  status              WithdrawalStatus  @default(REQUESTED)
+
+  requestedAt         DateTime          @default(now())
+  processingAt        DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+
+  transactionRef      String?
+  failureReason       String?
+  processedBy         String?
+  adminNote           String?
+
+  earningIds          String[]
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  providerProfile     ProviderProfile   @relation(fields: [providerProfileId], references: [id])
+  bankAccount         BankAccount       @relation(fields: [bankAccountId], references: [id])
+
+  @@index([providerProfileId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("withdrawals")
+}
+
+// ─── RECURRING PLANS ──────────────────────────────────
+
+model RecurringPlan {
+  id                  String              @id @default(cuid())
+  userId              String
+  elderProfileId      String?
+  providerProfileId   String
+  serviceCategoryId   String
+  frequency           RecurringFrequency
+  sessionsPerCycle    Int
+  feePerSession       Int
+  isActive            Boolean             @default(true)
+  startDate           DateTime
+  nextBillingDate     DateTime?
+  lastSessionDate     DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  elderProfile        ElderProfile?       @relation(fields: [elderProfileId], references: [id])
+
+  @@index([userId])
+  @@index([providerProfileId])
+  @@index([isActive])
+  @@map("recurring_plans")
+}
+
+// ─── CONCERNS ─────────────────────────────────────────
+
+model Concern {
+  id                  String          @id @default(cuid())
+  raisedById          String
+  providerProfileId   String?
+  sessionId           String?
+  severity            ConcernSeverity @default(LOW)
+  status              ConcernStatus   @default(OPEN)
+  description         String
+  adminNotes          String?
+  resolvedAt          DateTime?
+  resolvedBy          String?
+  resolutionNote      String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  raisedBy            User            @relation("ConcernRaisedBy", fields: [raisedById], references: [id])
+  providerProfile     ProviderProfile? @relation("ConcernAboutProvider", fields: [providerProfileId], references: [id])
+  session             Session?        @relation("SessionConcerns", fields: [sessionId], references: [id])
+
+  @@index([status])
+  @@index([severity])
+  @@index([providerProfileId])
+  @@map("concerns")
+}
+
+// ─── ADMIN NOTES ──────────────────────────────────────
+
+model AdminNote {
+  id                  String    @id @default(cuid())
+  providerProfileId   String
+  note                String
+  createdBy           String
+  createdAt           DateTime  @default(now())
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("admin_notes")
+}
+
+// ─── WARNINGS ─────────────────────────────────────────
+
+model Warning {
+  id                  String    @id @default(cuid())
+  providerProfileId   String
+  reason              String
+  issuedBy            String
+  issuedAt            DateTime  @default(now())
+  acknowledgedAt      DateTime?
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("warnings")
+}
+
+// ─── SUSPENSIONS ──────────────────────────────────────
+
+model Suspension {
+  id                  String    @id @default(cuid())
+  providerProfileId   String
+  reason              String
+  startDate           DateTime
+  endDate             DateTime?
+  isPermanent         Boolean   @default(false)
+  issuedBy            String
+  outcome             String?
+  liftedAt            DateTime?
+  liftedBy            String?
+  createdAt           DateTime  @default(now())
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("suspensions")
+}
+
+// ─── PROVIDER STATUS CHANGES ──────────────────────────
+
+model ProviderStatusChange {
+  id                  String        @id @default(cuid())
+  providerProfileId   String
+  fromStatus          AccountStatus
+  toStatus            AccountStatus
+  initiatedBy         String
+  reason              String?
+  scheduledReturnAt   DateTime?
+  createdAt           DateTime      @default(now())
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@map("provider_status_changes")
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────
+
+model Notification {
+  id          String              @id @default(cuid())
+  userId      String
+  channel     NotificationChannel
+  status      NotificationStatus  @default(PENDING)
+  title       String
+  body        String
+  data        Json?
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime            @default(now())
+
+  user        User                @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  actorId       String?
+  action        AuditAction
+  entityType    String
+  entityId      String?
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime    @default(now())
+
+  actor         User?       @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ─── VIRTUAL MEETINGS ─────────────────────────────────
+
+model VirtualMeeting {
+  id                  String    @id @default(cuid())
+  sessionId           String?
+  requestId           String?
+  meetingType         String
+  hostUserId          String
+  guestUserId         String
+  meetLink            String?
+  scheduledAt         DateTime?
+  durationMinutes     Int?      @default(30)
+  status              String    @default("PENDING")
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([sessionId])
+  @@index([requestId])
+  @@index([hostUserId])
+  @@index([status])
+  @@map("virtual_meetings")
+}
+
+// ─── SESSION COVERS ───────────────────────────────────
+
+model SessionCover {
+  id                    String    @id @default(cuid())
+  originalSessionId     String
+  coverCompanionId      String
+  reason                String
+  requestedAt           DateTime  @default(now())
+  confirmedAt           DateTime?
+  arrangedBy            String
+  status                String    @default("PENDING")
+  familyNotifiedAt      DateTime?
+  createdAt             DateTime  @default(now())
+
+  @@index([originalSessionId])
+  @@index([coverCompanionId])
+  @@index([status])
+  @@map("session_covers")
+}
+
+// ─── CITIES ───────────────────────────────────────────
+
+model City {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  slug        String      @unique
+  state       String
+  status      CityStatus  @default(COMING_SOON)
+  isPhase1    Boolean     @default(false)
+  latitude    Float?
+  longitude   Float?
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status])
+  @@index([isPhase1])
+  @@map("cities")
+}
+
+// ─── CITY WAITLIST ────────────────────────────────────
+
+model CityWaitlist {
+  id          String    @id @default(cuid())
+  cityId      String
+  name        String?
+  phone       String?
+  email       String?
+  type        String
+  createdAt   DateTime  @default(now())
+
+  @@index([cityId])
+  @@index([type])
+  @@map("city_waitlist")
+}
+
+// ─── SOS REQUESTS ────────────────────────────────────
+
+model SosRequest {
+  id                  String    @id @default(cuid())
+  userId              String?
+  phone               String
+  area                String
+  description         String
+  city                String    @default("Ahmedabad")
+  status              String    @default("SEARCHING")
+  // SEARCHING / COMPANION_FOUND / ADMIN_ALERTED / RESOLVED / FALLBACK
+  pollToken           String?   @unique
+  assignedCompanionId String?
+  companionNotifiedAt DateTime?
+  adminAlertedAt      DateTime?
+  resolvedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
+  @@index([city])
+  @@index([phone])
+  @@map("sos_requests")
+}
+
+// ─── REQUEST NOTIFICATIONS ────────────────────────────
+
+model RequestNotification {
+  id                  String    @id @default(cuid())
+  requestId           String
+  providerProfileId   String
+  status              String    @default("SENT")
+  sentAt              DateTime  @default(now())
+  seenAt              DateTime?
+  respondedAt         DateTime?
+  declineReason       String?
+  expiresAt           DateTime
+  createdAt           DateTime  @default(now())
+
+  request             Request   @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+  @@index([providerProfileId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("request_notifications")
+}
+
+// ─── BANK ACCOUNTS ────────────────────────────────────
+
+model BankAccount {
+  id                    String    @id @default(cuid())
+  providerProfileId     String    @unique
+
+  accountHolderName     String
+  bankName              String
+  accountNumber         String
+  accountNumberLast4    String
+  ifscCode              String
+  accountType           String    @default("SAVINGS")
+
+  upiId                 String?
+
+  isVerified            Boolean   @default(false)
+  verifiedAt            DateTime?
+  verifiedBy            String?
+
+  isPrimary             Boolean   @default(true)
+  isActive              Boolean   @default(true)
+
+  addedAt               DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  providerProfile       ProviderProfile @relation(fields: [providerProfileId], references: [id])
+  withdrawals           Withdrawal[]
+
+  @@map("bank_accounts")
+}
+
+// ─── CANCELLATION RECORDS ─────────────────────────────
+
+model CancellationRecord {
+  id                    String             @id @default(cuid())
+  sessionId             String             @unique
+  paymentId             String?            @unique
+
+  cancelledBy           CancelledBy
+  cancelReason          String?
+  cancelReasonCategory  String?
+
+  sessionScheduledAt    DateTime
+  cancelledAt           DateTime           @default(now())
+  hoursBeforeSession    Float
+  window                CancellationWindow
+
+  // Amounts in rupees
+  originalAmount        Int
+  refundAmount          Int
+  companionComp         Int
+  platformRetained      Int
+
+  refundStatus          String             @default("PENDING")
+  razorpayRefundId      String?
+  refundProcessedAt     DateTime?
+
+  compStatus            String             @default("PENDING")
+  compPaidAt            DateTime?
+
+  adminOverride         Boolean            @default(false)
+  adminNote             String?
+  adminId               String?
+
+  createdAt             DateTime           @default(now())
+
+  payment               Payment?           @relation(fields: [paymentId], references: [id])
+
+  @@index([sessionId])
+  @@index([cancelledBy])
+  @@index([window])
+  @@map("cancellation_records")
+}
+
+// ─── DISPUTES ─────────────────────────────────────────
+
+model Dispute {
+  id                    String          @id @default(cuid())
+  sessionId             String          @unique
+  paymentId             String?         @unique
+  raisedById            String
+  raisedAgainstId       String?
+
+  raisedBy              DisputeRaisedBy
+  status                DisputeStatus   @default(OPEN)
+  severity              String          @default("MEDIUM")
+
+  description           String
+  evidenceUrls          String[]
+
+  amountHeld            Int?
+  heldAt                DateTime?
+
+  resolution            String?
+  resolvedBy            String?
+  resolvedAt            DateTime?
+
+  refundAmount          Int?
+  companionPenalty      Int?
+  platformAbsorbed      Int?
+
+  adminNotes            String?
+  escalatedAt           DateTime?
+  escalatedTo           String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  payment               Payment?        @relation(fields: [paymentId], references: [id])
+
+  @@index([status])
+  @@index([severity])
+  @@index([raisedById])
+  @@index([createdAt])
+  @@map("disputes")
+}
+
+// ─── PLATFORM REVENUE ─────────────────────────────────
+
+model PlatformRevenue {
+  id                    String    @id @default(cuid())
+  sessionId             String?
+  paymentId             String?
+  sourceType            String
+  // SESSION_FEE / CANCELLATION_FEE / LATE_CANCEL_FEE / ADJUSTMENT
+  amount                Int
+  description           String?
+  createdAt             DateTime  @default(now())
+
+  @@index([sourceType])
+  @@index([createdAt])
+  @@map("platform_revenue")
+}
+
+// ─── FINANCIAL AUDIT LOG ──────────────────────────────
+
+model FinancialAuditLog {
+  id                    String    @id @default(cuid())
+  entityType            String
+  // PAYMENT / EARNING / WITHDRAWAL / REFUND / DISPUTE / CANCELLATION
+  entityId              String
+  action                String
+  // CREATED / UPDATED / STATUS_CHANGED / HELD / RELEASED / REFUNDED / PAID
+  previousValue         Json?
+  newValue              Json?
+  actorId               String?
+  actorType             String?
+  // ADMIN / SYSTEM / WEBHOOK
+  note                  String?
+  createdAt             DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("financial_audit_log")
+}
+
+// ─── RATE CONFIGURATION ───────────────────────────────
+
+model CompanionRateConfig {
+  id                  String    @id @default(cuid())
+  providerProfileId   String
+
+  companionSharePct   Float
+  platformSharePct    Float
+
+  reason              String
+  effectiveFrom       DateTime  @default(now())
+  effectiveTo         DateTime?
+
+  setBy               String
+  notifiedAt          DateTime?
+  notificationNote    String?
+
+  previousRate        Float?
+  isActive            Boolean   @default(true)
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@index([isActive])
+  @@map("companion_rate_configs")
+}
+
+model CityRateConfig {
+  id                  String    @id @default(cuid())
+  cityId              String    @unique
+
+  companionSharePct   Float     @default(80.0)
+  platformSharePct    Float     @default(20.0)
+
+  reason              String?
+  effectiveFrom       DateTime  @default(now())
+  setBy               String
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([cityId])
+  @@map("city_rate_configs")
+}
+
+model PlatformRateConfig {
+  id                  String    @id @default(cuid())
+
+  companionSharePct   Float     @default(80.0)
+  platformSharePct    Float     @default(20.0)
+
+  reason              String
+  effectiveFrom       DateTime
+  announcedAt         DateTime?
+  announcedBy         String
+  noticeGivenDays     Int       @default(60)
+
+  previousRate        Float?
+  isActive            Boolean   @default(true)
+
+  createdAt           DateTime  @default(now())
+
+  @@index([isActive])
+  @@index([effectiveFrom])
+  @@map("platform_rate_configs")
+}
+
+// ─── BONUS SYSTEM ─────────────────────────────────────
+
+model BonusEvent {
+  id                  String    @id @default(cuid())
+
+  name                String
+  description         String
+  amount              Int
+
+  targetType          String
+  targetCity          String?
+  targetGender        String?
+  targetTrustLevel    String?
+  targetCompanionId   String?
+
+  status              String    @default("DRAFT")
+
+  scheduledFor        DateTime?
+  executedAt          DateTime?
+  executedBy          String?
+
+  totalCompanions     Int?
+  totalAmount         Int?
+
+  createdBy           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  bonusCredits        BonusCredit[]
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("bonus_events")
+}
+
+model BonusCredit {
+  id                  String    @id @default(cuid())
+  bonusEventId        String
+  providerProfileId   String
+
+  amount              Int
+  reason              String
+
+  status              String    @default("CREDITED")
+
+  creditedAt          DateTime  @default(now())
+  paidAt              DateTime?
+  withdrawalId        String?
+
+  bonusEvent          BonusEvent      @relation(fields: [bonusEventId], references: [id])
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@index([bonusEventId])
+  @@index([status])
+  @@map("bonus_credits")
+}
+
+// ─── PERFORMANCE WARNINGS ─────────────────────────────
+
+model PerformanceWarning {
+  id                  String    @id @default(cuid())
+  providerProfileId   String
+
+  level               String
+
+  reason              String
+  triggerType         String
+
+  issuedBy            String
+  issuedAt            DateTime  @default(now())
+
+  actionTaken         String?
+
+  previousTrustLevel  String?
+  newTrustLevel       String?
+  previousRate        Float?
+  newRate             Float?
+
+  expiresAt           DateTime?
+  resolvedAt          DateTime?
+  resolvedBy          String?
+  resolutionNote      String?
+
+  notifiedAt          DateTime?
+  acknowledgedAt      DateTime?
+
+  createdAt           DateTime  @default(now())
+
+  providerProfile     ProviderProfile @relation(fields: [providerProfileId], references: [id])
+
+  @@index([providerProfileId])
+  @@index([level])
+  @@index([issuedAt])
+  @@map("performance_warnings")
+}
+
+// ─── COMPANION CONSENT ────────────────────────────────
+
+model CompanionConsent {
+  id                    String    @id @default(cuid())
+  providerProfileId     String
+  policyVersion         String    @default("1.0")
+  agreedAt              DateTime  @default(now())
+  ipAddress             String?
+  userAgent             String?
+
+  @@index([providerProfileId])
+  @@map("companion_consents")
+}
+
+// ─── CARE PLANS ───────────────────────────────────────
+
+model CarePlan {
+  id                    String        @id @default(cuid())
+  userId                String
+  elderProfileId        String?
+  providerProfileId     String
+  serviceCategoryId     String
+
+  // Plan configuration
+  frequency             PlanFrequency
+  duration              PlanDuration
+  billing               PlanBilling
+
+  // Sessions
+  totalSessions         Int
+  sessionsCompleted     Int           @default(0)
+  sessionsRemaining     Int
+  preferredDays         String[]
+  preferredTime         String?
+
+  // Pricing
+  regularPricePerVisit  Int
+  discountPercent       Float
+  planPricePerVisit     Int
+  totalRegularPrice     Int
+  totalPlanPrice        Int
+  totalSavings          Int
+
+  // Upfront extra discount
+  upfrontExtraDiscount  Float         @default(0)
+
+  // Billing
+  monthlyAmount         Int?
+  nextBillingDate       DateTime?
+  lastBilledDate        DateTime?
+  billingCycleCount     Int           @default(0)
+
+  // Status
+  status                PlanStatus    @default(DRAFT)
+  startDate             DateTime?
+  endDate               DateTime?
+  pausedAt              DateTime?
+  pausedUntil           DateTime?
+  totalPauseDays        Int           @default(0)
+
+  // Cancellation
+  cancelledAt           DateTime?
+  cancelReason          String?
+  refundAmount          Int?
+  companionCompAmount   Int?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  user                  User          @relation(fields: [userId], references: [id])
+  elderProfile          ElderProfile? @relation(fields: [elderProfileId], references: [id])
+  providerProfile       ProviderProfile @relation(fields: [providerProfileId], references: [id])
+  planSessions          PlanSession[]
+  planPayments          PlanPayment[]
+
+  @@index([userId])
+  @@index([providerProfileId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("care_plans")
+}
+
+model PlanSession {
+  id                String    @id @default(cuid())
+  carePlanId        String
+  sessionId         String?   @unique
+  scheduledDate     DateTime
+  scheduledTime     String
+  status            String    @default("SCHEDULED")
+
+  createdAt         DateTime  @default(now())
+
+  carePlan          CarePlan  @relation(fields: [carePlanId], references: [id])
+
+  @@index([carePlanId])
+  @@index([scheduledDate])
+  @@map("plan_sessions")
+}
+
+model PlanPayment {
+  id                String    @id @default(cuid())
+  carePlanId        String
+  cycleNumber       Int
+  amount            Int
+  status            String    @default("PENDING")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  dueDate           DateTime
+  paidAt            DateTime?
+
+  createdAt         DateTime  @default(now())
+
+  carePlan          CarePlan  @relation(fields: [carePlanId], references: [id])
+
+  @@index([carePlanId])
+  @@index([dueDate])
+  @@map("plan_payments")
+}
+
+// ─── GDPR / DATA DELETION ─────────────────────────────
+
+model DataDeletionRequest {
+  id              String    @id @default(cuid())
+  userId          String
+  requestType     String
+  // ACCOUNT_DELETE / ELDER_DELETE /
+  // NOTIFICATION_CLEAR / DATA_EXPORT
+  status          String    @default("PENDING")
+  // PENDING / PROCESSING / COMPLETED
+  requestedAt     DateTime  @default(now())
+  processedAt     DateTime?
+  scheduledFor    DateTime?
+  // 30 days after request for anonymisation
+  notes           String?
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("data_deletion_requests")
+}
