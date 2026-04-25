@@ -7,6 +7,15 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handleSendOtp(req);
+  } catch (err) {
+    console.error("[ADMIN /api/auth/send-otp] fatal", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+async function handleSendOtp(req: NextRequest) {
   let raw: unknown;
   try {
     raw = await req.json();
