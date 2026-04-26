@@ -1,6 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/admin-guard";
-import LogoutButton from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,31 +92,19 @@ function MetricCard({
 }
 
 export default async function DashboardPage() {
-  const admin = await requireAdmin();
   const m = await fetchMetrics();
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-black">
-      <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-widest uppercase text-zinc-500">
-              NearDear Admin
-            </p>
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Dashboard
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {admin.name}
-            </p>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
+    <>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+          Dashboard
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          Live counts from the database.
+        </p>
+      </div>
+      <div>
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 mb-4">
             People
@@ -182,6 +168,6 @@ export default async function DashboardPage() {
           </div>
         </section>
       </div>
-    </main>
+    </>
   );
 }
